@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 
 import edu.jhu.hlt.concrete.search.Search;
 
@@ -69,7 +70,14 @@ public class Server {
 
     public static void main(String[] args) {
         Opts opts = new Opts();
-        JCommander jc = new JCommander(opts, args);
+        JCommander jc = null;
+        try {
+            jc = new JCommander(opts, args);
+        } catch (ParameterException e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(-1);
+        }
+        jc.setProgramName("./start.sh");
         if (opts.help) {
             jc.usage();
             return;
