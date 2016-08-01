@@ -13,6 +13,7 @@ It requires Java 8 and maven with access to the HLTCOE's maven server (or manual
 Running
 --------------
 The concrete files must be in a single directory and be named [comm id].concrete.
+Support for tarballs will be added in the future.
 
 ```bash
 ./start.sh -d /data/concrete_dir/ -p 8888
