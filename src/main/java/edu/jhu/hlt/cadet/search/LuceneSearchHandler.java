@@ -3,7 +3,9 @@ package edu.jhu.hlt.cadet.search;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -34,9 +36,11 @@ import edu.jhu.hlt.concrete.Sentence;
 import edu.jhu.hlt.concrete.TextSpan;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.search.Search;
+import edu.jhu.hlt.concrete.search.SearchCapability;
 import edu.jhu.hlt.concrete.search.SearchQuery;
 import edu.jhu.hlt.concrete.search.SearchResult;
 import edu.jhu.hlt.concrete.search.SearchResults;
+import edu.jhu.hlt.concrete.search.SearchType;
 import edu.jhu.hlt.concrete.serialization.CompactCommunicationSerializer;
 import edu.jhu.hlt.concrete.services.ServiceInfo;
 import edu.jhu.hlt.concrete.services.ServicesException;
@@ -56,14 +60,16 @@ public class LuceneSearchHandler implements Search.Iface,  AutoCloseable {
     private final CompactCommunicationSerializer serializer;
 
     private final String dataDir;
+    private final String languageCode;
     private Directory luceneDir;
     private IndexSearcher searcher;
     private Analyzer analyzer;
     private static final int MAX_RESULTS = 500;
 
-    public LuceneSearchHandler(String dataDir) {
+    public LuceneSearchHandler(String dataDir, String languageCode) {
         this.serializer = new CompactCommunicationSerializer();
         this.dataDir = dataDir;
+        this.languageCode = languageCode;
         AnalyticUUIDGeneratorFactory f = new AnalyticUUIDGeneratorFactory();
         this.uuidGen = f.create();
 
@@ -217,4 +223,27 @@ public class LuceneSearchHandler implements Search.Iface,  AutoCloseable {
         luceneDir.close();
     }
 
+    @Override
+    public List<SearchCapability> getCapabilities() throws ServicesException, TException {
+	List<SearchCapability> capabilities = new ArrayList<SearchCapability>();
+
+	SearchCapability communicationsCapability = new SearchCapability();
+	communicationsCapability.setLang(this.languageCode);
+	communicationsCapability.setType(SearchType.COMMUNICATIONS);
+	capabilities.add(communicationsCapability);
+
+	SearchCapability sentencesCapability = new SearchCapability();
+	sentencesCapability.setLang(this.languageCode);
+	sentencesCapability.setType(SearchType.SENTENCES);
+	capabilities.add(sentencesCapability);
+
+	return capabilities;
+    }
+
+    @Override
+    public List<String> getCorpora() throws ServicesException, TException {
+        List<String> corpora = new ArrayList<String>();
+        corpora.add(this.dataDir);
+        return corpora;
+    }
 }
