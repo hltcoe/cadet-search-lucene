@@ -21,15 +21,17 @@ public class Server {
 
     private final int port;
     private final String dataDir;
+    private final String languageCode;
     private Search.Processor<Search.Iface> processor;
 
-    public Server(int port, String dataDir) {
+    public Server(int port, String dataDir, String languageCode) {
         this.port = port;
         this.dataDir = dataDir;
+        this.languageCode = languageCode;
     }
 
     public void start() {
-        processor = new Search.Processor<Search.Iface>(new LuceneSearchHandler(dataDir));
+        processor = new Search.Processor<Search.Iface>(new LuceneSearchHandler(dataDir, languageCode));
         Runnable instance = new Runnable() {
             public void run() {
                 try {
@@ -63,6 +65,10 @@ public class Server {
                 description = "Path to the data directory with the concrete comms.")
         String dataDir;
 
+        @Parameter(names = {"--language", "-l"},
+                description = "The ISO 639-2/T three letter language code for corpus.")
+        String languageCode = "eng";
+
         @Parameter(names = {"--help", "-h"},
                 help = true, description = "Print the usage information and exit.")
         boolean help;
@@ -83,7 +89,7 @@ public class Server {
             return;
         }
 
-        Server server = new Server(opts.port, opts.dataDir);
+        Server server = new Server(opts.port, opts.dataDir, opts.languageCode);
         server.start();
     }
 
