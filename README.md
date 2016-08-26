@@ -1,10 +1,15 @@
+[![build status](https://gitlab.hltcoe.jhu.edu/CADET/cadet-search-lucene/badges/master/build.svg)](https://gitlab.hltcoe.jhu.edu/CADET/cadet-search-lucene/commits/master)
+---
+
 File-based search for CADET
 ===============================
-This server indexes concrete files on disk using lucene to support rapid demos and testing.
+This server indexes concrete files on disk using lucene to support
+rapid demos and testing.
 
 Building
 ---------------
-It requires Java 8 and maven with access to the HLTCOE's maven server (or manually installing the dependencies).
+It requires Java 8 and maven with access to the HLTCOE's maven server
+(or manually installing the dependencies).
 
 ```bash
 ./build.sh
@@ -26,4 +31,5 @@ Other indexes and analyzers will be supported in the future.
 
 Integration
 ----------------
-CADET must use the file-based retriever and sender to work with this search server.
+CADET must use the file-based retriever and sender to work with this
+search server.
