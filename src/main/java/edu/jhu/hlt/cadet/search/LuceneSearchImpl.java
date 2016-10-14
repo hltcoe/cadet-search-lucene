@@ -19,23 +19,23 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.google.common.collect.ImmutableList;
 
-import edu.jhu.hlt.cadet.SearchServiceWrapper;
 import edu.jhu.hlt.concrete.AnnotationMetadata;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneConstants;
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
-import edu.jhu.hlt.concrete.search.Search;
 import edu.jhu.hlt.concrete.search.SearchCapability;
 import edu.jhu.hlt.concrete.search.SearchQuery;
 import edu.jhu.hlt.concrete.search.SearchResult;
-import edu.jhu.hlt.concrete.search.SearchResults;
+import edu.jhu.hlt.concrete.search.SearchResultItem;
+import edu.jhu.hlt.concrete.search.SearchService;
 import edu.jhu.hlt.concrete.search.SearchType;
 import edu.jhu.hlt.concrete.services.ServiceInfo;
 import edu.jhu.hlt.concrete.services.ServicesException;
+import edu.jhu.hlt.concrete.services.search.SearchServiceWrapper;
 import edu.jhu.hlt.concrete.util.Timing;
 import edu.jhu.hlt.concrete.uuid.UUIDFactory;
 
-public class LuceneSearchImpl implements Search.Iface, AutoCloseable {
+public class LuceneSearchImpl implements SearchService.Iface, AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LuceneSearchImpl.class);
 
@@ -82,11 +82,11 @@ public class LuceneSearchImpl implements Search.Iface, AutoCloseable {
   }
 
   @Override
-  public SearchResults search(SearchQuery query) throws ServicesException, TException {
+  public SearchResult search(SearchQuery query) throws ServicesException, TException {
     String rq = Optional.ofNullable(query.getRawQuery())
         .orElseThrow(() -> new ServicesException("This impl only uses rawQuery, which was unset."));
     try {
-      SearchResults srs = new SearchResults()
+      SearchResult srs = new SearchResult()
           .setLang(this.langCode)
           .setUuid(UUIDFactory.newUUID())
           .setMetadata(getAMD());
@@ -94,11 +94,11 @@ public class LuceneSearchImpl implements Search.Iface, AutoCloseable {
       ScoreDoc[] sda = td.scoreDocs;
       for (ScoreDoc sd : sda) {
         Document d = this.search.get(sd.doc);
-        SearchResult sr = new SearchResult();
+        SearchResultItem sr = new SearchResultItem();
         sr.setCommunicationId(d.get(ConcreteLuceneConstants.COMM_ID_FIELD));
         sr.setSentenceId(new UUID(d.get(ConcreteLuceneConstants.UUID_FIELD)));
         sr.setScore(sd.score);
-        srs.addToSearchResults(sr);
+        srs.addToSearchResultItems(sr);
       }
 
       return srs;
