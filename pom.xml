@@ -7,8 +7,8 @@
 
   <parent>
     <groupId>edu.jhu.hlt</groupId>
-    <artifactId>hltcoe-concrete-parent</artifactId>
-    <version>4.10-rework</version>
+    <artifactId>concrete-parent</artifactId>
+    <version>4.11</version>
   </parent>
 
   <artifactId>cadet-search-lucene</artifactId>
@@ -39,7 +39,7 @@
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
       <artifactId>concrete-services-java</artifactId>
-      <version>4.10.7.1</version>
+      <version>4.11.0.2</version>
     </dependency>
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
