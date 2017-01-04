@@ -3,7 +3,7 @@
 
 File-based search for CADET
 ===============================
-This server indexes Concrete files on disk using Lucene to support
+This server indexes Concrete files from a Fetch service using Lucene to support
 rapid demos and testing.  The server implements the SearchService
 API defined in concrete-services.
 
@@ -13,28 +13,14 @@ It requires Java 8 and maven with access to the HLTCOE's maven server
 (or manually installing the dependencies).
 
 ```bash
-./build.sh
+mvn clean package
 ```
 
 Running
 --------------
-The Concrete files must be in a single directory and be named
-`[comm id].concrete.`
+You must have a running Fetch service passing its parameters as fh and fp options.
 
 ```bash
-./start.sh -d /data/concrete_dir/ -p 8888
+./start.sh -d /index_dir/ -p 8888 -fh localhost -fp 9091
 ```
 
-Indexing
-----------------
-Currently, this builds a memory-based index using the Lucene standard
-analyzer.  The analyzer assumes that the Communications have been
-segmented into Sections and Sentences, and uses the Sentence.textSpan
-field to extract the sentence text from the Communication.text field.
-
-Integration
-----------------
-CADET can use the project's built-in file-based implementations of
-FetchCommunicationService and StoreCommunicationService to work with
-this search server.  Please see the CADET README for instructions
-about how to configure these services.

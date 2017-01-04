@@ -1,159 +1,43 @@
 package edu.jhu.hlt.cadet.search;
 
-import java.io.File;
+
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.jhu.hlt.concrete.AnnotationMetadata;
-import edu.jhu.hlt.concrete.Communication;
-import edu.jhu.hlt.concrete.Section;
-import edu.jhu.hlt.concrete.Sentence;
-import edu.jhu.hlt.concrete.TextSpan;
-import edu.jhu.hlt.concrete.UUID;
+import edu.jhu.hlt.concrete.lucene.ConcreteLuceneConstants;
+import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
 import edu.jhu.hlt.concrete.search.SearchCapability;
 import edu.jhu.hlt.concrete.search.SearchQuery;
 import edu.jhu.hlt.concrete.search.SearchResult;
 import edu.jhu.hlt.concrete.search.SearchResultItem;
 import edu.jhu.hlt.concrete.search.SearchType;
-import edu.jhu.hlt.concrete.serialization.CompactCommunicationSerializer;
 import edu.jhu.hlt.concrete.services.ServiceInfo;
 import edu.jhu.hlt.concrete.services.ServicesException;
-import edu.jhu.hlt.concrete.util.ConcreteException;
 import edu.jhu.hlt.concrete.uuid.AnalyticUUIDGeneratorFactory;
 
 public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
     private static Logger logger = LoggerFactory.getLogger(LuceneSearchHandler.class);
 
-    private static final String FIELD_CONTENTS = "contents";
-    private static final String FIELD_COMM_ID = "comm_id";
-    private static final String FIELD_SENT_ID = "sent_id";
-
-    public static final String EXTENSION = "concrete";
-
     private final AnalyticUUIDGeneratorFactory.AnalyticUUIDGenerator uuidGen;
-    private final CompactCommunicationSerializer serializer;
 
-    private final String dataDir;
     private final String languageCode;
-    private Directory luceneDir;
-    private IndexSearcher searcher;
-    private Analyzer analyzer;
+    private final ConcreteLuceneSearcher searcher;
     private static final int MAX_RESULTS = 500;
 
-    public LuceneSearchHandler(String dataDir, String languageCode) {
-        this.serializer = new CompactCommunicationSerializer();
-        this.dataDir = dataDir;
+    public LuceneSearchHandler(String languageCode, ConcreteLuceneSearcher searcher) {
+        this.searcher = searcher;
         this.languageCode = languageCode;
         AnalyticUUIDGeneratorFactory f = new AnalyticUUIDGeneratorFactory();
         this.uuidGen = f.create();
-
-        validateDirectory(dataDir);
-
-        analyzer = new StandardAnalyzer();
-        try {
-            buildIndex();
-            IndexReader reader = DirectoryReader.open(luceneDir);
-            searcher = new IndexSearcher(reader);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to build lucene index for search", e);
-        }
-    }
-
-    private void validateDirectory(String dir) {
-        File file = new File(dir);
-        if (!file.exists()) {
-            throw new RuntimeException("Directory " + dir + " does not exist");
-        }
-        if (!file.isDirectory()) {
-            throw new RuntimeException(dir + " is not a directory");
-        }
-    }
-
-    private void buildIndex() throws IOException {
-        luceneDir = new RAMDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(analyzer);
-        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-        IndexWriter writer = new IndexWriter(luceneDir, config);
-
-        int count = 0;
-        Communication comm;
-        File dir = new File(dataDir);
-        for (File file : dir.listFiles()) {
-            try {
-                comm = serializer.fromPath(Paths.get(file.getAbsolutePath()));
-            } catch (ConcreteException e) {
-                logger.warn("Cannot deserialize " + file.getName());
-                continue;
-            }
-
-            if (addCommunication(writer, comm)) {
-                count++;
-            }
-        }
-
-        writer.close();
-        logger.info("Completed building the lucene index with size " + count);
-    }
-
-    private boolean addCommunication(IndexWriter writer, Communication comm) {
-        if (!comm.isSetText() || !comm.isSetSectionList()) {
-            logger.warn("Concrete comm " + comm.getId() + " is invalid");
-            return false;
-        }
-        Iterator<Section> sections = comm.getSectionListIterator();
-        while (sections.hasNext()) {
-            Section section = sections.next();
-            if (!section.isSetSentenceList()) {
-                logger.info("Empty section in " + comm.getId());
-                continue;
-            }
-            Iterator<Sentence> sentences = section.getSentenceListIterator();
-            while (sentences.hasNext()) {
-                Sentence sentence = sentences.next();
-                Document doc = new Document();
-                doc.add(new StoredField(FIELD_COMM_ID, comm.getId()));
-                doc.add(new StoredField(FIELD_SENT_ID, sentence.getUuid().getUuidString()));
-                String content = getTextFromSpan(comm, sentence.getTextSpan());
-                doc.add(new TextField(FIELD_CONTENTS, content, Store.YES));
-                try {
-                    writer.addDocument(doc);
-                } catch (IOException e) {
-                    logger.warn("Failed to add " + comm.getId() + " to the lucene index");
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    private String getTextFromSpan(Communication comm, TextSpan span) {
-        return comm.getText().substring(span.getStart(), span.getEnding());
     }
 
     @Override
@@ -162,23 +46,31 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
             throw new ServicesException("Unable to query lucene index");
         }
 
+        logger.info("Search query: " + query.getRawQuery());
+
         SearchResult results = createResultsContainer(query);
 
         try {
-            Query luceneQuery = createLuceneQuery(query.getRawQuery());
-            TopDocs topDocs = searcher.search(luceneQuery, MAX_RESULTS);
-            for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
-                Document document = searcher.doc(scoreDoc.doc);
+            List<Document> docs = null;
+            try {
+                docs = searcher.searchDocuments(query.getRawQuery(), MAX_RESULTS);
+            } catch (ParseException e) {
+                logger.warn("Could not parse query: " + query.getRawQuery());
+                throw new ServicesException("Unable to parse query: " + query.getRawQuery());
+            }
+            for (Document doc : docs) {
                 SearchResultItem result = new SearchResultItem();
-                result.setCommunicationId(document.get(FIELD_COMM_ID));
-                result.setSentenceId(new UUID(document.get(FIELD_SENT_ID)));
-                result.setScore(scoreDoc.score);
+                result.setCommunicationId(doc.get(ConcreteLuceneConstants.COMM_ID_FIELD));
+                result.setSentenceId(uuidGen.next());
+                result.setScore(0);
                 results.addToSearchResultItems(result);
             }
         } catch (IOException e) {
             logger.warn("Could not read the lucene index for search");
             throw new ServicesException(e.getMessage());
         }
+
+        logger.info("Returning " + results.getSearchResultItemsSize() + " results");
 
         return results;
     }
@@ -194,16 +86,6 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
         return results;
     }
 
-    private Query createLuceneQuery(String queryText) throws ServicesException {
-        QueryParser queryParser = new QueryParser(FIELD_CONTENTS, analyzer);
-        try {
-            return queryParser.parse(queryText);
-        } catch (ParseException e) {
-            logger.warn("Bad query string for lucene: " + queryText, e);
-            throw new ServicesException("Cannot understand query: " + queryText);
-        }
-    }
-
     @Override
     public ServiceInfo about() throws TException {
         ServiceInfo info = new ServiceInfo("Cadet Lucene Search", "1.0.0");
@@ -217,10 +99,6 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        if (searcher != null) {
-            searcher.getIndexReader().close();
-        }
-        luceneDir.close();
     }
 
     @Override
@@ -243,7 +121,7 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
     @Override
     public List<String> getCorpora() throws ServicesException, TException {
         List<String> corpora = new ArrayList<>();
-        corpora.add(this.dataDir);
+        // TODO
         return corpora;
     }
 }
