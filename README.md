@@ -21,7 +21,7 @@ Running
 You must have a running Fetch service passing its parameters as fh and fp options.
 
 ```bash
-./start.sh -d /index_dir/ -p 8888 -fh localhost -fp 9091
+./start.sh -d /index_dir/ -p 8888 --fh localhost --fp 9091
 ```
 
 Docker
