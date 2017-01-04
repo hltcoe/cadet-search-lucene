@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.jhu.hlt.concrete.AnnotationMetadata;
+import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneConstants;
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
@@ -61,7 +62,7 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
             for (Document doc : docs) {
                 SearchResultItem result = new SearchResultItem();
                 result.setCommunicationId(doc.get(ConcreteLuceneConstants.COMM_ID_FIELD));
-                result.setSentenceId(uuidGen.next());
+                result.setSentenceId(new UUID(doc.get(ConcreteLuceneConstants.UUID_FIELD)));
                 result.setScore(0);
                 results.addToSearchResultItems(result);
             }
