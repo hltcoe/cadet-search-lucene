@@ -24,3 +24,16 @@ You must have a running Fetch service passing its parameters as fh and fp option
 ./start.sh -d /index_dir/ -p 8888 -fh localhost -fp 9091
 ```
 
+Docker
+-------------
+To build the image, run
+
+```bash
+docker build -t hltcoe/cadet-search-lucene .
+```
+
+To run the search app on port 9092 with a fetch service at port 9091:
+
+```bash
+docker run -d hltcoe/cadet-search-lucene -p 9092 -d /tmp --fh localhost --fp 9091
+```
