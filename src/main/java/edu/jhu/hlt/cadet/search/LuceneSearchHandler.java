@@ -59,6 +59,10 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
                 logger.warn("Could not parse query: " + query.getRawQuery());
                 throw new ServicesException("Unable to parse query: " + query.getRawQuery());
             }
+            // the UI cannot handle a null list
+            if (docs.isEmpty()) {
+                results.setSearchResultItems(new ArrayList<SearchResultItem>());
+            }
             for (Document doc : docs) {
                 SearchResultItem result = new SearchResultItem();
                 result.setCommunicationId(doc.get(ConcreteLuceneConstants.COMM_ID_FIELD));
