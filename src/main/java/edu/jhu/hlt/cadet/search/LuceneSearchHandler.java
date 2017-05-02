@@ -47,9 +47,15 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
             throw new ServicesException("Unable to query lucene index");
         }
 
-        logger.info("Search query: " + query.getRawQuery());
-
         SearchResult results = createResultsContainer(query);
+
+        if (query.getRawQuery().trim().equals("")) {
+            logger.info("Short circuiting an empty query");
+            results.setSearchResultItems(new ArrayList<SearchResultItem>());
+            return results;
+        }
+
+        logger.info("Search query: " + query.getRawQuery());
 
         try {
             List<Document> docs = null;
