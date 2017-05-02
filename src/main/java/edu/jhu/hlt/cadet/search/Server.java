@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -101,6 +104,18 @@ public class Server {
         new Thread(instance).start();
     }
 
+    static public boolean indexExists(String dirName) {
+        boolean exists = false;
+        try {
+            Directory dir = FSDirectory.open(Paths.get(dirName));
+            exists = DirectoryReader.indexExists(dir);
+            dir.close();
+        } catch (IOException e) {
+            logger.info("Unable to test if lucene index exists");
+        }
+        return exists;
+    }
+
     public void launch(SearchService.Processor<SearchService.Iface> processor)
                     throws TTransportException {
         TNonblockingServerTransport transport = new TNonblockingServerSocket(port);
@@ -132,6 +147,10 @@ public class Server {
         @Parameter(names = {"--fp"}, required = true, description = "The port of the fetch service.")
         int fetchPort;
 
+        @Parameter(names = {"--build-index", "-b"},
+                        description = "Build index pulling documents from the fetch service. (default is to not build the index)")
+        boolean buildIndex = false;
+
         @Parameter(names = {"--help", "-h"}, help = true,
                         description = "Print the usage information and exit.")
         boolean help;
@@ -153,17 +172,24 @@ public class Server {
         }
 
         Server server = new Server(opts.port, opts.indexDir, opts.languageCode, opts.fetchHost, opts.fetchPort);
-        try {
-            server.index();
-        } catch (TException | IOException e) {
-            System.err.println("Unable build search index: " + e.getMessage());
+        if (opts.buildIndex) {
+            try {
+                server.index();
+            } catch (TException | IOException e) {
+                System.err.println("Unable build search index: " + e.getMessage());
+                System.exit(-1);
+            }
+        }
+
+        if (!Server.indexExists(opts.indexDir)) {
+            System.err.println("Cannot run search as the index does not exist");
             System.exit(-1);
         }
 
         try {
             server.start();
         } catch (IOException e) {
-            System.err.println("Unable to use search index - this shouldn't happen since we just built it");
+            System.err.println("Unable to use search index.");
             e.printStackTrace();
             System.exit(-1);
         }
