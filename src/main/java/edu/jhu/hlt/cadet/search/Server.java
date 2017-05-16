@@ -34,6 +34,8 @@ import edu.jhu.hlt.concrete.search.SearchService;
 public class Server {
     private static Logger logger = LoggerFactory.getLogger(Server.class);
 
+    private static final long BATCH_SIZE = 250;
+
     private final int port;
     private final String indexDir;
     private final String languageCode;
@@ -66,7 +68,7 @@ public class Server {
         }
         long numComms = client.getCommunicationCount();
         logger.info("Adding documents to index: " + numComms);
-        long batchSize = 100;
+        long batchSize = BATCH_SIZE;
         for (long offset = 0; offset < numComms; offset += batchSize) {
             List<String> ids = client.getCommunicationIDs(offset, batchSize);
             if (ids == null) {
@@ -151,6 +153,10 @@ public class Server {
                         description = "Build index pulling documents from the fetch service. (default is to not build the index)")
         boolean buildIndex = false;
 
+        @Parameter(names = {"--run-search", "-r"},
+                        description = "Run search service. Requires the index. (default is to not run search)")
+        boolean runSearch = false;
+
         @Parameter(names = {"--help", "-h"}, help = true,
                         description = "Print the usage information and exit.")
         boolean help;
@@ -181,17 +187,19 @@ public class Server {
             }
         }
 
-        if (!Server.indexExists(opts.indexDir)) {
-            System.err.println("Cannot run search as the index does not exist");
-            System.exit(-1);
-        }
+        if (opts.runSearch) {
+            if (!Server.indexExists(opts.indexDir)) {
+                System.err.println("Cannot run search as the index does not exist");
+                System.exit(-1);
+            }
 
-        try {
-            server.start();
-        } catch (IOException e) {
-            System.err.println("Unable to use search index.");
-            e.printStackTrace();
-            System.exit(-1);
+            try {
+                server.start();
+            } catch (IOException e) {
+                System.err.println("Unable to use search index.");
+                e.printStackTrace();
+                System.exit(-1);
+            }
         }
     }
 }
