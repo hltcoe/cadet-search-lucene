@@ -90,6 +90,9 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
         SearchResult results = new SearchResult();
         results.setUuid(uuidGen.next());
         results.setSearchQuery(query);
+        if (languageCode != null) {
+            results.setLang(languageCode);
+        }
         AnnotationMetadata metadata = new AnnotationMetadata();
         metadata.setTool("Cadet Lucene Search");
         results.setMetadata(metadata);

@@ -141,7 +141,7 @@ public class Server {
 
         @Parameter(names = {"--language", "-l"},
                         description = "The ISO 639-2/T three letter language code for corpus.")
-        String languageCode = "eng";
+        String languageCode = null;
 
         @Parameter(names = {"--fh"}, required = true, description = "The host of the fetch service.")
         String fetchHost;
