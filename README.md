@@ -1,4 +1,4 @@
-[![build status](https://gitlab.hltcoe.jhu.edu/CADET/cadet-search-lucene/badges/master/build.svg)](https://gitlab.hltcoe.jhu.edu/CADET/cadet-search-lucene/commits/master)
+[![build status](https://gitlab.hltcoe.jhu.edu/research/cadet-search-lucene/badges/master/build.svg)](https://gitlab.hltcoe.jhu.edu/research/cadet-search-lucene/commits/master)
 ---
 
 File-based search for CADET
@@ -18,11 +18,17 @@ mvn clean package
 
 Running
 --------------
-You must have a running Fetch service passing its parameters as fh and fp options.
+You must have a running Fetch service and pass its parameters as fh and fp options.
 
 ```bash
-./start.sh -d /index_dir/ -p 8888 --fh localhost --fp 9091
+./start.sh -d /index_dir/ -p 8888 --fh localhost --fp 9091 -b -r
 ```
+
+To build the index, set the -b flag. To run the search service, set the -r flag.
+
+For monolingual corpora, set the language code with the -l option. Use the language's 3 letter code.
+
+More details can be found by passing the -h flag.
 
 Docker
 -------------
