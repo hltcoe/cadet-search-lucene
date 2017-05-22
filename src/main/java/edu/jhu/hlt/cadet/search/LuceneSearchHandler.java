@@ -119,13 +119,19 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
     public List<SearchCapability> getCapabilities() throws ServicesException, TException {
         List<SearchCapability> capabilities = new ArrayList<>();
 
+        // set default language to English in case language isn't set
+        String lang = "eng";
+        if (this.languageCode != null) {
+            lang = this.languageCode;
+        }
+
         SearchCapability communicationsCapability = new SearchCapability();
-        communicationsCapability.setLang(this.languageCode);
+        communicationsCapability.setLang(lang);
         communicationsCapability.setType(SearchType.COMMUNICATIONS);
         capabilities.add(communicationsCapability);
 
         SearchCapability sentencesCapability = new SearchCapability();
-        sentencesCapability.setLang(this.languageCode);
+        sentencesCapability.setLang(lang);
         sentencesCapability.setType(SearchType.SENTENCES);
         capabilities.add(sentencesCapability);
 
