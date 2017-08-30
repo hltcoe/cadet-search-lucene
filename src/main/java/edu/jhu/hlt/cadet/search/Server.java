@@ -27,8 +27,10 @@ import edu.jhu.hlt.concrete.Communication;
 import edu.jhu.hlt.concrete.access.FetchCommunicationService;
 import edu.jhu.hlt.concrete.access.FetchRequest;
 import edu.jhu.hlt.concrete.access.FetchResult;
-import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
-import edu.jhu.hlt.concrete.lucene.NaiveConcreteLuceneIndexer;
+import edu.jhu.hlt.concrete.lucene.LuceneCommunicationIndexer;
+import edu.jhu.hlt.concrete.lucene.LuceneCommunicationSearcher;
+import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationIndexer;
+import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
 
 public class Server {
@@ -54,7 +56,7 @@ public class Server {
     }
 
     public void index() throws TException, IOException {
-        NaiveConcreteLuceneIndexer indexer = new NaiveConcreteLuceneIndexer(Paths.get(indexDir));
+        LuceneCommunicationIndexer indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
 
         FetchClientFactory factory = new FetchClientFactory();
         FetchCommunicationService.Client client = factory.createClient(fetchHost, fetchPort);
@@ -91,7 +93,7 @@ public class Server {
     }
 
     public void start() throws IOException {
-        ConcreteLuceneSearcher searcher = new ConcreteLuceneSearcher(Paths.get(indexDir));
+        LuceneCommunicationSearcher searcher = new TokenizedCommunicationSearcher(Paths.get(indexDir));
         processor = new SearchService.Processor<>(new LuceneSearchHandler(languageCode, searcher));
         Runnable instance = new Runnable() {
             @Override

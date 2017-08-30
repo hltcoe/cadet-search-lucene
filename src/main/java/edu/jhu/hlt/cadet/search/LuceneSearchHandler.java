@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import edu.jhu.hlt.concrete.AnnotationMetadata;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneConstants;
-import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
+import edu.jhu.hlt.concrete.lucene.LuceneCommunicationSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
 import edu.jhu.hlt.concrete.search.SearchCapability;
 import edu.jhu.hlt.concrete.search.SearchQuery;
@@ -31,10 +31,10 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
     private final AnalyticUUIDGeneratorFactory.AnalyticUUIDGenerator uuidGen;
 
     private final String languageCode;
-    private final ConcreteLuceneSearcher searcher;
+    private final LuceneCommunicationSearcher searcher;
     private static final int MAX_RESULTS = 500;
 
-    public LuceneSearchHandler(String languageCode, ConcreteLuceneSearcher searcher) {
+    public LuceneSearchHandler(String languageCode, LuceneCommunicationSearcher searcher) {
         this.searcher = searcher;
         this.languageCode = languageCode;
         AnalyticUUIDGeneratorFactory f = new AnalyticUUIDGeneratorFactory();
