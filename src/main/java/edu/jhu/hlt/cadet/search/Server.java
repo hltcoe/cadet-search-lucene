@@ -184,6 +184,12 @@ public class Server {
             return;
         }
 
+        // index, run, or both should be selected
+        if (!opts.runSearch && !opts.buildIndex) {
+            System.err.println("You must select with the -r run option or -b build index");
+            System.exit(-1);
+        }
+
         Server server = new Server(opts.port, opts.indexDir, opts.languageCode, opts.fetchHost, opts.fetchPort);
         if (opts.buildIndex) {
             try {
