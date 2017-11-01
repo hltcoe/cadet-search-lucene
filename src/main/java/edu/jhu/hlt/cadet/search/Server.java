@@ -69,6 +69,7 @@ public class Server {
             throw new TException("Unable to talk to fetch service");
         }
         long numComms = client.getCommunicationCount();
+        long counter = 0;
         logger.info("Adding documents to index: " + numComms);
         for (long offset = 0; offset < numComms; offset += batchSize) {
             List<String> ids = client.getCommunicationIDs(offset, batchSize);
@@ -83,9 +84,11 @@ public class Server {
                 indexer.close();
                 throw new TException("Unable to get comms from fetch service");
             }
+            counter += result.getCommunications().size();
             for (Communication comm : result.getCommunications()) {
                 indexer.add(comm);
             }
+            logger.info("Indexed " + counter + "/" + numComms + " Communications");
         }
         factory.freeClient();
         indexer.close();
