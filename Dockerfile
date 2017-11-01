@@ -1,21 +1,15 @@
-FROM hltcoe/concrete-java:v4.14.1
+FROM maven
 
-ENV CSL=/home/concrete/cadet-search-lucene
+COPY pom.xml /opt/cadet-search-lucene/pom.xml
+COPY src /opt/cadet-search-lucene/src
 
-ADD . $CSL
-
-USER root
-RUN chown -R concrete:concrete $CSL
-USER concrete
-
-WORKDIR $CSL
+WORKDIR /opt/cadet-search-lucene
 RUN mvn -B clean package \
         -Dskiptests=true \
         -Dmaven.test.skip=true && \
     mv `find target -name "cadet-search-lucene-fat-*.jar"` \
         cadet-search-lucene.jar && \
-    mvn -B clean && \
-    rm -rf /home/concrete/.m2
+    mvn -B clean
 
 ENTRYPOINT [ "java", "-jar", "cadet-search-lucene.jar" ]
 
