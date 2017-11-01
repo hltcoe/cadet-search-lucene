@@ -1,6 +1,3 @@
-[![build status](https://gitlab.hltcoe.jhu.edu/research/cadet-search-lucene/badges/master/build.svg)](https://gitlab.hltcoe.jhu.edu/research/cadet-search-lucene/commits/master)
----
-
 File-based search for CADET
 ===============================
 This server indexes Concrete files from a Fetch service using Lucene to support
