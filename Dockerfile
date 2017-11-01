@@ -1,7 +1,16 @@
-FROM openjdk:8-jre
+FROM maven
 
-WORKDIR /app
-COPY target/*fat*.jar /app/search.jar
+COPY pom.xml /opt/cadet-search-lucene/pom.xml
+COPY src /opt/cadet-search-lucene/src
 
-ENTRYPOINT [ "java", "-jar", "/app/search.jar" ]
+WORKDIR /opt/cadet-search-lucene
+RUN mvn -B clean package \
+        -Dskiptests=true \
+        -Dmaven.test.skip=true && \
+    mv `find target -name "cadet-search-lucene-fat-*.jar"` \
+        cadet-search-lucene.jar && \
+    mvn -B clean
 
+ENTRYPOINT [ "java", "-jar", "cadet-search-lucene.jar" ]
+
+CMD ["--help"]

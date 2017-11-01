@@ -57,7 +57,7 @@
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
       <artifactId>concrete-services</artifactId>
-      <version>4.14.1-SNAPSHOT</version>
+      <version>4.14.1</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.logging.log4j</groupId>
@@ -72,7 +72,7 @@
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
       <artifactId>concrete-lucene</artifactId>
-      <version>4.14.1-SNAPSHOT</version>
+      <version>4.14.1</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.logging.log4j</groupId>
