@@ -42,7 +42,7 @@ import edu.jhu.hlt.concrete.search.SearchService;
 public class Server {
     private static Logger logger = LoggerFactory.getLogger(Server.class);
 
-    private static final long BATCH_SIZE = 250;
+    private static final int DEFAULT_BATCH_SIZE = 250;
 
     private final int port;
     private final String indexDir;
@@ -61,7 +61,7 @@ public class Server {
         this.fetchPort = fetchPort;
     }
 
-    public void index() throws TException, IOException {
+    public void index(int batchSize) throws TException, IOException {
         LuceneCommunicationIndexer indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
 
         FetchClientFactory factory = new FetchClientFactory();
@@ -75,8 +75,8 @@ public class Server {
             throw new TException("Unable to talk to fetch service");
         }
         long numComms = client.getCommunicationCount();
+        long counter = 0;
         logger.info("Adding documents to index: " + numComms);
-        long batchSize = BATCH_SIZE;
         for (long offset = 0; offset < numComms; offset += batchSize) {
             List<String> ids = client.getCommunicationIDs(offset, batchSize);
             if (ids == null) {
@@ -90,9 +90,11 @@ public class Server {
                 indexer.close();
                 throw new TException("Unable to get comms from fetch service");
             }
+            counter += result.getCommunications().size();
             for (Communication comm : result.getCommunications()) {
                 indexer.add(comm);
             }
+            logger.info("Indexed " + counter + "/" + numComms + " Communications");
         }
         factory.freeClient();
         indexer.close();
@@ -157,6 +159,9 @@ public class Server {
         @Parameter(names = {"--fp"}, required = true, description = "The port of the fetch service.")
         int fetchPort;
 
+        @Parameter(names = {"--batch"}, description = "Batch size for indexing from fetch service.")
+        int batchSize = Server.DEFAULT_BATCH_SIZE;
+
         @Parameter(names = {"--build-index", "-b"},
                         description = "Build index pulling documents from the fetch service. (default is to not build the index)")
         boolean buildIndex = false;
@@ -185,10 +190,16 @@ public class Server {
             return;
         }
 
+        // index, run, or both should be selected
+        if (!opts.runSearch && !opts.buildIndex) {
+            System.err.println("You must select with the -r run option or -b build index");
+            System.exit(-1);
+        }
+
         Server server = new Server(opts.port, opts.indexDir, opts.languageCode, opts.fetchHost, opts.fetchPort);
         if (opts.buildIndex) {
             try {
-                server.index();
+                server.index(opts.batchSize);
             } catch (TException | IOException e) {
                 System.err.println("Unable build search index: " + e.getMessage());
                 System.exit(-1);
