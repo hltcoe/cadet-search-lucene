@@ -196,6 +196,7 @@ public class Server {
             }
 
             try {
+                System.out.println("Launching search service on port " + opts.port);
                 server.start();
             } catch (IOException e) {
                 System.err.println("Unable to use search index.");
