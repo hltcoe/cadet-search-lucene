@@ -72,7 +72,7 @@ public class LuceneSearchHandler implements SearchService.Iface, AutoCloseable {
             for (Document doc : docs) {
                 SearchResultItem result = new SearchResultItem();
                 result.setCommunicationId(doc.get(ConcreteLuceneConstants.COMM_ID_FIELD));
-                result.setSentenceId(new UUID(doc.get(ConcreteLuceneConstants.UUID_FIELD)));
+                result.setSentenceId(new UUID(doc.get(ConcreteLuceneConstants.SENT_UUID_FIELD)));
                 result.setScore(0);
                 results.addToSearchResultItems(result);
             }
