@@ -57,7 +57,7 @@ public class Server {
     protected TCompactProtocol protocol;
 
     public Server(int port, String indexDir, String languageCode, String fetchHost,
-    		int fetchPort, boolean useLuceneTokenizer) {
+                  int fetchPort, boolean useLuceneTokenizer) {
         this.port = port;
         this.indexDir = indexDir;
         this.languageCode = languageCode;
@@ -69,9 +69,9 @@ public class Server {
     public void index(int batchSize) throws TException, IOException {
         LuceneCommunicationIndexer indexer = null;
         if (useLuceneTokenizer) {
-        	indexer = new NaiveConcreteLuceneIndexer(Paths.get(indexDir));
+            indexer = new NaiveConcreteLuceneIndexer(Paths.get(indexDir));
         } else {
-        	indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
+            indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
         }
 
         FetchClientFactory factory = new FetchClientFactory();
@@ -113,9 +113,9 @@ public class Server {
     public void start() throws IOException {
         LuceneCommunicationSearcher searcher = null;
         if (useLuceneTokenizer) {
-        	searcher = new ConcreteLuceneSearcher(Paths.get(indexDir));
+            searcher = new ConcreteLuceneSearcher(Paths.get(indexDir));
         } else {
-        	searcher = new TokenizedCommunicationSearcher(Paths.get(indexDir));
+            searcher = new TokenizedCommunicationSearcher(Paths.get(indexDir));
         }
         processor = new SearchService.Processor<>(new LuceneSearchHandler(languageCode, searcher));
         Runnable instance = new Runnable() {
@@ -215,7 +215,7 @@ public class Server {
         }
 
         Server server = new Server(opts.port, opts.indexDir, opts.languageCode,
-        		opts.fetchHost, opts.fetchPort, opts.useLuceneTokenizer);
+                            opts.fetchHost, opts.fetchPort, opts.useLuceneTokenizer);
         if (opts.buildIndex) {
             try {
                 server.index(opts.batchSize);

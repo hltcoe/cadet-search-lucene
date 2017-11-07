@@ -1,8 +1,7 @@
 File-based search for CADET
 ===============================
-This server indexes Concrete files from a Fetch service using Lucene to support
-rapid demos and testing.  The server implements the SearchService
-API defined in concrete-services.
+This server indexes Concrete files from a Fetch service using Lucene to support rapid demos and testing.
+The server implements the SearchService thrift API defined in Concrete.
 
 Building
 ---------------
