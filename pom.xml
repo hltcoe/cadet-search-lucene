@@ -14,6 +14,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <concrete.version>4.14.2</concrete.version>
   </properties>
 
   <build>
@@ -57,7 +58,7 @@
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
       <artifactId>concrete-services</artifactId>
-      <version>4.14.2</version>
+      <version>${concrete.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.logging.log4j</groupId>
@@ -72,7 +73,7 @@
     <dependency>
       <groupId>edu.jhu.hlt</groupId>
       <artifactId>concrete-lucene</artifactId>
-      <version>4.14.2</version>
+      <version>${concrete.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.logging.log4j</groupId>
@@ -83,6 +84,11 @@
           <artifactId>*</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>edu.jhu.hlt</groupId>
+      <artifactId>concrete-zip</artifactId>
+      <version>${concrete.version}</version>
     </dependency>
     <dependency>
       <groupId>com.beust</groupId>
