@@ -26,6 +26,8 @@ Running the build option multiple times will add the same communications to the 
 
 For monolingual corpora, set the language code with the -l option. Use the language's 3 letter code.
 
+To use Lucene's tokenization rather than that found in the concrete files, pass the --lt flag.
+
 More details can be found by passing the -h flag.
 
 Docker
