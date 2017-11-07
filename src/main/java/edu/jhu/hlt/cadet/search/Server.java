@@ -33,8 +33,10 @@ import edu.jhu.hlt.concrete.Communication;
 import edu.jhu.hlt.concrete.access.FetchCommunicationService;
 import edu.jhu.hlt.concrete.access.FetchRequest;
 import edu.jhu.hlt.concrete.access.FetchResult;
+import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
 import edu.jhu.hlt.concrete.lucene.LuceneCommunicationIndexer;
 import edu.jhu.hlt.concrete.lucene.LuceneCommunicationSearcher;
+import edu.jhu.hlt.concrete.lucene.NaiveConcreteLuceneIndexer;
 import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationIndexer;
 import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
@@ -47,22 +49,30 @@ public class Server {
     private final int port;
     private final String indexDir;
     private final String languageCode;
+    private final boolean useLuceneTokenizer;
     private SearchService.Processor<SearchService.Iface> processor;
     private final int fetchPort;
     private final String fetchHost;
     protected TTransport transport;
     protected TCompactProtocol protocol;
 
-    public Server(int port, String indexDir, String languageCode, String fetchHost, int fetchPort) {
+    public Server(int port, String indexDir, String languageCode, String fetchHost,
+    		int fetchPort, boolean useLuceneTokenizer) {
         this.port = port;
         this.indexDir = indexDir;
         this.languageCode = languageCode;
         this.fetchHost = fetchHost;
         this.fetchPort = fetchPort;
+        this.useLuceneTokenizer = useLuceneTokenizer;
     }
 
     public void index(int batchSize) throws TException, IOException {
-        LuceneCommunicationIndexer indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
+        LuceneCommunicationIndexer indexer = null;
+        if (useLuceneTokenizer) {
+        	indexer = new NaiveConcreteLuceneIndexer(Paths.get(indexDir));
+        } else {
+        	indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
+        }
 
         FetchClientFactory factory = new FetchClientFactory();
         FetchCommunicationService.Client client = factory.createClient(fetchHost, fetchPort);
@@ -101,7 +111,12 @@ public class Server {
     }
 
     public void start() throws IOException {
-        LuceneCommunicationSearcher searcher = new TokenizedCommunicationSearcher(Paths.get(indexDir));
+        LuceneCommunicationSearcher searcher = null;
+        if (useLuceneTokenizer) {
+        	searcher = new ConcreteLuceneSearcher(Paths.get(indexDir));
+        } else {
+        	searcher = new TokenizedCommunicationSearcher(Paths.get(indexDir));
+        }
         processor = new SearchService.Processor<>(new LuceneSearchHandler(languageCode, searcher));
         Runnable instance = new Runnable() {
             @Override
@@ -154,13 +169,16 @@ public class Server {
         String languageCode = null;
 
         @Parameter(names = {"--fh"}, required = true, description = "The host of the fetch service.")
-        String fetchHost;
+        String fetchHost = "localhost";
 
         @Parameter(names = {"--fp"}, required = true, description = "The port of the fetch service.")
         int fetchPort;
 
         @Parameter(names = {"--batch"}, description = "Batch size for indexing from fetch service.")
         int batchSize = Server.DEFAULT_BATCH_SIZE;
+
+        @Parameter(names = {"--lt"}, description = "Use Lucene tokenizer rather than tokenization in concrete.")
+        boolean useLuceneTokenizer = false;
 
         @Parameter(names = {"--build-index", "-b"},
                         description = "Build index pulling documents from the fetch service. (default is to not build the index)")
@@ -196,7 +214,8 @@ public class Server {
             System.exit(-1);
         }
 
-        Server server = new Server(opts.port, opts.indexDir, opts.languageCode, opts.fetchHost, opts.fetchPort);
+        Server server = new Server(opts.port, opts.indexDir, opts.languageCode,
+        		opts.fetchHost, opts.fetchPort, opts.useLuceneTokenizer);
         if (opts.buildIndex) {
             try {
                 server.index(opts.batchSize);
@@ -213,7 +232,6 @@ public class Server {
             }
 
             try {
-                System.out.println("Launching search service on port " + opts.port);
                 server.start();
             } catch (IOException e) {
                 System.err.println("Unable to use search index.");
