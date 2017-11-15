@@ -45,24 +45,27 @@ public class Server {
     private final String languageCode;
     private final boolean useLuceneTokenizer;
     private SearchService.Processor<SearchService.Iface> processor;
-    private final int fetchPort;
-    private final String fetchHost;
-    private final Indexer indexer;
     protected TTransport transport;
     protected TCompactProtocol protocol;
 
-    public Server(int port, String indexDir, String languageCode, String fetchHost,
-                  int fetchPort, boolean useLuceneTokenizer) {
+    public Server(int port, String indexDir, String languageCode, boolean useLuceneTokenizer) {
         this.port = port;
         this.indexDir = indexDir;
         this.languageCode = languageCode;
-        this.fetchHost = fetchHost;
-        this.fetchPort = fetchPort;
         this.useLuceneTokenizer = useLuceneTokenizer;
-        this.indexer = new NetworkIndexer(fetchHost, fetchPort);
     }
 
-    public void index(int batchSize) throws TException, IOException {
+    public void indexOverNetwork(int batchSize, String fetchHost, int fetchPort) throws TException, IOException {
+        Indexer indexer = new NetworkIndexer(fetchHost, fetchPort);
+        Config config = new Config();
+        config.batchSize = batchSize;
+        config.useLuceneTokenizer = this.useLuceneTokenizer;
+        config.indexDir = Paths.get(this.indexDir);
+        indexer.index(config);
+    }
+
+    public void indexFromFilesystem(int batchSize, String directPath) throws TException, IOException {
+        Indexer indexer = new DirectIndexer(directPath);
         Config config = new Config();
         config.batchSize = batchSize;
         config.useLuceneTokenizer = this.useLuceneTokenizer;
@@ -128,11 +131,14 @@ public class Server {
                         description = "The ISO 639-2/T three letter language code for corpus.")
         String languageCode = null;
 
-        @Parameter(names = {"--fh"}, required = true, description = "The host of the fetch service.")
+        @Parameter(names = {"--fh"}, description = "The host of the fetch service.")
         String fetchHost = "localhost";
 
-        @Parameter(names = {"--fp"}, required = true, description = "The port of the fetch service.")
+        @Parameter(names = {"--fp"}, description = "The port of the fetch service.")
         int fetchPort;
+
+        @Parameter(names = {"--direct"}, description = "Direct ingest from a zip file")
+        String directIngestPath;
 
         @Parameter(names = {"--batch"}, description = "Batch size for indexing from fetch service.")
         int batchSize = Server.DEFAULT_BATCH_SIZE;
@@ -174,11 +180,19 @@ public class Server {
             System.exit(-1);
         }
 
-        Server server = new Server(opts.port, opts.indexDir, opts.languageCode,
-                            opts.fetchHost, opts.fetchPort, opts.useLuceneTokenizer);
+        Server server = new Server(opts.port, opts.indexDir, opts.languageCode, opts.useLuceneTokenizer);
         if (opts.buildIndex) {
             try {
-                server.index(opts.batchSize);
+                if (opts.fetchPort > 0) {
+                    // build index from a fetch service
+                    server.indexOverNetwork(opts.batchSize, opts.fetchHost, opts.fetchPort);
+                } else if (opts.directIngestPath != null) {
+                    // build index from a zip file
+                    server.indexFromFilesystem(opts.batchSize, opts.directIngestPath);
+                } else {
+                    System.err.println("Either fetch or direct ingest params must be set");
+                    System.exit(-1);
+                }
             } catch (TException | IOException e) {
                 System.err.println("Unable build search index: " + e.getMessage());
                 System.exit(-1);
