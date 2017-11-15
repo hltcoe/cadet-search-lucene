@@ -26,7 +26,13 @@ wait_for() {
 argc=$#
 argv=($@)
 
+HELP=false
 for (( j=0; j<argc; j++ )); do
+    # Check if the help flag was passed
+    if [ ${argv[j]} == "--help" ]; then
+        HELP=true
+    fi
+
     # Check if there is an '--fh' arg that is not the last arg
     if [ ${argv[j]} == "--fh" ] && [ $((j)) -lt $((argc-1)) ]; then
 	# Set HOST to arg after '--fh'
@@ -40,6 +46,12 @@ for (( j=0; j<argc; j++ )); do
     fi
 done
 
+if $HELP ; then
+    exec "$@"
+    exit 0
+fi
+
+# Fetch HOST and PORT are needed to ping the service before launching search
 if [ "$HOST" == "" -o "$PORT" == "" ]; then
     echo "Error: you must specify a Fetch server using '--fp PORT' and '--fh HOST'" >&2
     exit 2

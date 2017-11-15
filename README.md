@@ -37,8 +37,16 @@ To build the image, run
 docker build -t hltcoe/cadet-search-lucene .
 ```
 
+To get help running the image:
+```
+docker run hltcoe/cadet-search-lucene
+```
+
 To run the search app on port 9092 with a fetch service at port 9091:
 
 ```bash
 docker run -d hltcoe/cadet-search-lucene -p 9092 -d /tmp --fh localhost --fp 9091
 ```
+Note: a firewall could prevent the search service running in the container reach
+a fetch service running on the host as is required in the example above.
+
