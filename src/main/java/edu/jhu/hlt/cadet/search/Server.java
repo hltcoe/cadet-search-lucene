@@ -8,7 +8,6 @@ package edu.jhu.hlt.cadet.search;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.List;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
@@ -29,15 +28,10 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
-import edu.jhu.hlt.concrete.Communication;
-import edu.jhu.hlt.concrete.access.FetchCommunicationService;
-import edu.jhu.hlt.concrete.access.FetchRequest;
-import edu.jhu.hlt.concrete.access.FetchResult;
+import edu.jhu.hlt.cadet.search.Indexer.Config;
+
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
-import edu.jhu.hlt.concrete.lucene.LuceneCommunicationIndexer;
 import edu.jhu.hlt.concrete.lucene.LuceneCommunicationSearcher;
-import edu.jhu.hlt.concrete.lucene.NaiveConcreteLuceneIndexer;
-import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationIndexer;
 import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
 
@@ -51,63 +45,32 @@ public class Server {
     private final String languageCode;
     private final boolean useLuceneTokenizer;
     private SearchService.Processor<SearchService.Iface> processor;
-    private final int fetchPort;
-    private final String fetchHost;
     protected TTransport transport;
     protected TCompactProtocol protocol;
 
-    public Server(int port, String indexDir, String languageCode, String fetchHost,
-                  int fetchPort, boolean useLuceneTokenizer) {
+    public Server(int port, String indexDir, String languageCode, boolean useLuceneTokenizer) {
         this.port = port;
         this.indexDir = indexDir;
         this.languageCode = languageCode;
-        this.fetchHost = fetchHost;
-        this.fetchPort = fetchPort;
         this.useLuceneTokenizer = useLuceneTokenizer;
     }
 
-    public void index(int batchSize) throws TException, IOException {
-        LuceneCommunicationIndexer indexer = null;
-        if (useLuceneTokenizer) {
-            indexer = new NaiveConcreteLuceneIndexer(Paths.get(indexDir));
-        } else {
-            indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
-        }
+    public void indexOverNetwork(int batchSize, String fetchHost, int fetchPort) throws TException, IOException {
+        Indexer indexer = new NetworkIndexer(fetchHost, fetchPort);
+        Config config = new Config();
+        config.batchSize = batchSize;
+        config.useLuceneTokenizer = this.useLuceneTokenizer;
+        config.indexDir = Paths.get(this.indexDir);
+        indexer.index(config);
+    }
 
-        FetchClientFactory factory = new FetchClientFactory();
-        FetchCommunicationService.Client client = factory.createClient(fetchHost, fetchPort);
-        try {
-            if (!client.alive()) {
-                indexer.close();
-                throw new TException("Unable to talk to fetch service");
-            }
-        } catch (TTransportException e) {
-            throw new TException("Unable to talk to fetch service");
-        }
-        long numComms = client.getCommunicationCount();
-        long counter = 0;
-        logger.info("Adding documents to index: " + numComms);
-        for (long offset = 0; offset < numComms; offset += batchSize) {
-            List<String> ids = client.getCommunicationIDs(offset, batchSize);
-            if (ids == null) {
-                indexer.close();
-                throw new TException("Unable to get comm ids from fetch service");
-            }
-            FetchRequest request = new FetchRequest();
-            request.setCommunicationIds(ids);
-            FetchResult result = client.fetch(request);
-            if (result == null) {
-                indexer.close();
-                throw new TException("Unable to get comms from fetch service");
-            }
-            counter += result.getCommunications().size();
-            for (Communication comm : result.getCommunications()) {
-                indexer.add(comm);
-            }
-            logger.info("Indexed " + counter + "/" + numComms + " Communications");
-        }
-        factory.freeClient();
-        indexer.close();
+    public void indexFromFilesystem(int batchSize, String directPath) throws TException, IOException {
+        Indexer indexer = new DirectIndexer(directPath);
+        Config config = new Config();
+        config.batchSize = batchSize;
+        config.useLuceneTokenizer = this.useLuceneTokenizer;
+        config.indexDir = Paths.get(this.indexDir);
+        indexer.index(config);
     }
 
     public void start() throws IOException {
@@ -168,11 +131,14 @@ public class Server {
                         description = "The ISO 639-2/T three letter language code for corpus.")
         String languageCode = null;
 
-        @Parameter(names = {"--fh"}, required = true, description = "The host of the fetch service.")
+        @Parameter(names = {"--fh"}, description = "The host of the fetch service.")
         String fetchHost = "localhost";
 
-        @Parameter(names = {"--fp"}, required = true, description = "The port of the fetch service.")
+        @Parameter(names = {"--fp"}, description = "The port of the fetch service.")
         int fetchPort;
+
+        @Parameter(names = {"--direct"}, description = "Direct ingest from a zip file or directory")
+        String directIngestPath;
 
         @Parameter(names = {"--batch"}, description = "Batch size for indexing from fetch service.")
         int batchSize = Server.DEFAULT_BATCH_SIZE;
@@ -214,11 +180,19 @@ public class Server {
             System.exit(-1);
         }
 
-        Server server = new Server(opts.port, opts.indexDir, opts.languageCode,
-                            opts.fetchHost, opts.fetchPort, opts.useLuceneTokenizer);
+        Server server = new Server(opts.port, opts.indexDir, opts.languageCode, opts.useLuceneTokenizer);
         if (opts.buildIndex) {
             try {
-                server.index(opts.batchSize);
+                if (opts.fetchPort > 0) {
+                    // build index from a fetch service
+                    server.indexOverNetwork(opts.batchSize, opts.fetchHost, opts.fetchPort);
+                } else if (opts.directIngestPath != null) {
+                    // build index from a zip file or directory
+                    server.indexFromFilesystem(opts.batchSize, opts.directIngestPath);
+                } else {
+                    System.err.println("Either fetch or direct ingest params must be set");
+                    System.exit(-1);
+                }
             } catch (TException | IOException e) {
                 System.err.println("Unable build search index: " + e.getMessage());
                 System.exit(-1);
