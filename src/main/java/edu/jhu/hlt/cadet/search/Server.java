@@ -137,7 +137,7 @@ public class Server {
         @Parameter(names = {"--fp"}, description = "The port of the fetch service.")
         int fetchPort;
 
-        @Parameter(names = {"--direct"}, description = "Direct ingest from a zip file")
+        @Parameter(names = {"--direct"}, description = "Direct ingest from a zip file or directory")
         String directIngestPath;
 
         @Parameter(names = {"--batch"}, description = "Batch size for indexing from fetch service.")
@@ -187,7 +187,7 @@ public class Server {
                     // build index from a fetch service
                     server.indexOverNetwork(opts.batchSize, opts.fetchHost, opts.fetchPort);
                 } else if (opts.directIngestPath != null) {
-                    // build index from a zip file
+                    // build index from a zip file or directory
                     server.indexFromFilesystem(opts.batchSize, opts.directIngestPath);
                 } else {
                     System.err.println("Either fetch or direct ingest params must be set");
