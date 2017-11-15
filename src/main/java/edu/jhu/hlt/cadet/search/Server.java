@@ -8,7 +8,6 @@ package edu.jhu.hlt.cadet.search;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.List;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
@@ -29,15 +28,10 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 
-import edu.jhu.hlt.concrete.Communication;
-import edu.jhu.hlt.concrete.access.FetchCommunicationService;
-import edu.jhu.hlt.concrete.access.FetchRequest;
-import edu.jhu.hlt.concrete.access.FetchResult;
+import edu.jhu.hlt.cadet.search.Indexer.Config;
+
 import edu.jhu.hlt.concrete.lucene.ConcreteLuceneSearcher;
-import edu.jhu.hlt.concrete.lucene.LuceneCommunicationIndexer;
 import edu.jhu.hlt.concrete.lucene.LuceneCommunicationSearcher;
-import edu.jhu.hlt.concrete.lucene.NaiveConcreteLuceneIndexer;
-import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationIndexer;
 import edu.jhu.hlt.concrete.lucene.pretokenized.TokenizedCommunicationSearcher;
 import edu.jhu.hlt.concrete.search.SearchService;
 
@@ -53,6 +47,7 @@ public class Server {
     private SearchService.Processor<SearchService.Iface> processor;
     private final int fetchPort;
     private final String fetchHost;
+    private final Indexer indexer;
     protected TTransport transport;
     protected TCompactProtocol protocol;
 
@@ -64,50 +59,15 @@ public class Server {
         this.fetchHost = fetchHost;
         this.fetchPort = fetchPort;
         this.useLuceneTokenizer = useLuceneTokenizer;
+        this.indexer = new NetworkIndexer(fetchHost, fetchPort);
     }
 
     public void index(int batchSize) throws TException, IOException {
-        LuceneCommunicationIndexer indexer = null;
-        if (useLuceneTokenizer) {
-            indexer = new NaiveConcreteLuceneIndexer(Paths.get(indexDir));
-        } else {
-            indexer = new TokenizedCommunicationIndexer(Paths.get(indexDir));
-        }
-
-        FetchClientFactory factory = new FetchClientFactory();
-        FetchCommunicationService.Client client = factory.createClient(fetchHost, fetchPort);
-        try {
-            if (!client.alive()) {
-                indexer.close();
-                throw new TException("Unable to talk to fetch service");
-            }
-        } catch (TTransportException e) {
-            throw new TException("Unable to talk to fetch service");
-        }
-        long numComms = client.getCommunicationCount();
-        long counter = 0;
-        logger.info("Adding documents to index: " + numComms);
-        for (long offset = 0; offset < numComms; offset += batchSize) {
-            List<String> ids = client.getCommunicationIDs(offset, batchSize);
-            if (ids == null) {
-                indexer.close();
-                throw new TException("Unable to get comm ids from fetch service");
-            }
-            FetchRequest request = new FetchRequest();
-            request.setCommunicationIds(ids);
-            FetchResult result = client.fetch(request);
-            if (result == null) {
-                indexer.close();
-                throw new TException("Unable to get comms from fetch service");
-            }
-            counter += result.getCommunications().size();
-            for (Communication comm : result.getCommunications()) {
-                indexer.add(comm);
-            }
-            logger.info("Indexed " + counter + "/" + numComms + " Communications");
-        }
-        factory.freeClient();
-        indexer.close();
+        Config config = new Config();
+        config.batchSize = batchSize;
+        config.useLuceneTokenizer = this.useLuceneTokenizer;
+        config.indexDir = Paths.get(this.indexDir);
+        indexer.index(config);
     }
 
     public void start() throws IOException {
