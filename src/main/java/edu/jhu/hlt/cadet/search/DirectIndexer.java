@@ -42,6 +42,7 @@ public class DirectIndexer implements Indexer {
             indexer = new TokenizedCommunicationIndexer(config.indexDir);
         }
 
+        logger.info("Starting ingest from filesystem");
         if (path.endsWith(".zip")) {
             processZipFile(indexer, path, config.batchSize);
         } else {

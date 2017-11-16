@@ -56,11 +56,16 @@ To get help running the image:
 docker run hltcoe/cadet-search-lucene
 ```
 
-To run the search service on port 9092 with a fetch service at port 9091:
+To run the search service on host port 9092 with a fetch service at port 9091 on the host:
 
 ```bash
-docker run -d hltcoe/cadet-search-lucene -p 9092 -d /tmp --fh localhost --fp 9091
+docker run -d -p 9092:9092 hltcoe/cadet-search-lucene -p 9092 -d /tmp --fh 172.17.0.1 --fp 9091 -b -r
 ```
-Note: a firewall could prevent the search service running in the container reach
+Note: 172.17.0.1 is commonly the docker bridge ip address to the host.
+A firewall could prevent the search service running in the container reach
 a fetch service running on the host as is required in the example above.
 
+To run the search service on the default port with a direct ingest from the filsystem:
+```bash
+docker run -d -p 8077:8077 -v /opt/my_data:/data hltcoe/cadet-search-lucene -d /tmp --direct /data/comms.zip -b -r
+```

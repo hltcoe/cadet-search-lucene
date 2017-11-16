@@ -27,10 +27,16 @@ argc=$#
 argv=($@)
 
 HELP=false
+DIRECT=false
 for (( j=0; j<argc; j++ )); do
     # Check if the help flag was passed
     if [ ${argv[j]} == "--help" ]; then
         HELP=true
+    fi
+
+    # Check if the direct ingest flag was passed
+    if [ ${argv[j]} == "--direct" ]; then
+        DIRECT=true
     fi
 
     # Check if there is an '--fh' arg that is not the last arg
@@ -46,7 +52,7 @@ for (( j=0; j<argc; j++ )); do
     fi
 done
 
-if $HELP ; then
+if $HELP || $DIRECT ; then
     exec "$@"
     exit 0
 fi
