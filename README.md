@@ -3,6 +3,9 @@ File-based search for CADET
 This server indexes Concrete files from a Fetch service using Lucene to support rapid demos and testing.
 The server implements the SearchService thrift API defined in Concrete.
 
+This indexes over sentences in the Concrete files.
+The index is added to with each build operation so running on the same files with result in duplicates. 
+
 Building
 ---------------
 It requires Java 8 and maven.
